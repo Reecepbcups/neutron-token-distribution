@@ -1,7 +1,7 @@
 ## Token Information
 - Denom: factory/neutron10r39fueph9fq7a6lgswu4zdsg8t3gxlqgn9xk5/Governance
 - [1,000,000 Governance Total Supply](https://www.mintscan.io/neutron/tx/BFDAAEFF916C60A72F3D2A7A050AE06142F955BA8E636D94D7589902D15291B5?height=8682436) *(1000000_000000governance because 10\*\*6)*
-- Admin migrated to 0x address. no controller:
+- [Admin migrated to 0x address](https://www.mintscan.io/neutron/tx/462717F97A09B244C5A6B296F177929DB224FD19B48625C5785D517031E1FE84?height=8686248). no controller:
     - `neutrond keys parse 000000000000000000000000000000`` -> neutron1qqqqqqqqqqqqqqqqqqqqqqqqda09ec
 
 ## Snapshot Information
@@ -187,4 +187,12 @@ CE602C6FB40514370D8CD2FA97F3E03469E12468CF9E7C51DF7654138E8A1BEF
 C4A5498E2CB102F98C181D0AF380DB7E584F76254FAB00B2B76C9CD5A061A3BB
 9337294205AEC516B46C82DA8E899C6048B03BA60759D960E28FD17116CA1E0D
 2AB2850BDA06436216E7FA6015FBF42FBF8A8F5A0B89B8843B15FD39A59C44E3
+```
+
+<!-- All remaining tokens sent to the nul address. -->
+
+```
+neutrond tx bank send reece-main neutron1qqqqqqqqqqqqqqqqqqqqqqqqda09ec 999999003235798939factory/neutron10r39fueph9fq7a6lgswu4zdsg8t3gxlqgn9xk5/Governance --fees=50000untrn  --node=https://neutron-rpc.polkachu.com:443 --keyring-backend=test --chain-id=neutron-1
+
+neutrond q tx A737461B282873A3E3ACCC8E080827DD11268CE332440742BFDDB16968FE4C3B --node=https://neutron-rpc.polkachu.com:443
 ```
