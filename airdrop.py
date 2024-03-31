@@ -29,31 +29,6 @@ class SDKCoin:
 
 @dataclass
 class Balance:
-    # {
-    #       "address": "neutron1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqhufaa6",
-    #       "coins": [
-    #         {
-    #           "amount": "771740802243010",
-    #           "denom": "factory/neutron108x7vp9zv22d6wxrs9as8dshd3pd5vsga463yd/JIMMY"
-    #         },
-    #         {
-    #           "amount": "1000000",
-    #           "denom": "factory/neutron170v88vrtnedesyfytuku257cggxc79rd7lwt7q/ucircus"
-    #         },
-    #         {
-    #           "amount": "9949900796032",
-    #           "denom": "factory/neutron1fjn0vr4dma5crx2rctv6vmfwxx0v0vrdk50l3p/SunnyProp16JunoWhaleInu"
-    #         },
-    #         {
-    #           "amount": "1499245809051",
-    #           "denom": "factory/neutron1fjn0vr4dma5crx2rctv6vmfwxx0v0vrdk50l3p/TakumiProp16JunoWhaleInu"
-    #         },
-    #         {
-    #           "amount": "59600000",
-    #           "denom": "ibc/773B4D0A3CD667B2275D5A4A7A2F0909C0BA0F4059C0B9181E680DDF4965DCC7"
-    #         }
-    #       ]
-    #     }
     address: str
     coins: list[SDKCoin]
 
@@ -110,8 +85,10 @@ TOTAL_SUPPLY = sum([bal.get_token(BASE_TOKEN) for bal in USERS.values()])
 # ---------
 
 # write a file with all users
-GAS = 19_500_000
+GAS = 19_069_420
 FEE_AMOUNT = int(GAS * 0.0053)
+
+SEQUENCE = 25
 
 
 def get_tx_format() -> dict:
@@ -124,9 +101,18 @@ def get_tx_format() -> dict:
             "non_critical_extension_options": [],
         },
         "auth_info": {
-            "signer_infos": [],
+            "signer_infos": [
+                {
+                    "public_key": {
+                        "@type": "/cosmos.crypto.secp256k1.PubKey",
+                        "key": "ApW93WeOI06jkRkctzeAiMVRRShdb+Idxmxa+3rXAlek",
+                    },
+                    "mode_info": {"single": {"mode": "SIGN_MODE_DIRECT"}},
+                    "sequence": f"{SEQUENCE}",
+                }
+            ],
             "fee": {
-                "amount": [{"amount": f"{FEE_AMOUNT}", "denom": BASE_TOKEN}],
+                "amount": [{"amount": f"{FEE_AMOUNT+1}", "denom": BASE_TOKEN}],
                 "gas_limit": f"{GAS}",
                 "payer": "",
                 "granter": "",
@@ -145,12 +131,14 @@ TX_FORMAT = get_tx_format()
 os.makedirs("txs", exist_ok=True)
 os.makedirs("signed", exist_ok=True)
 
-SIGN_SCRIPT = open("txs/sign.sh", "w")
-BROADCAST_SCRIPT = open("broadcast.sh", "w")
+SCRIPT = open("script.sh", "w")
+# BROADCAST_SCRIPT = open("broadcast.sh", "w")
 
-ALREADY_BROADCAST = [0]
+ALREADY_BROADCAST = [0, 1, 2, 3, 4, 5, 6, 7, 8]  # debugging
 
-for idx, (to_addr, bal) in enumerate(USERS.items()):
+
+count = 0
+for to_addr, bal in USERS.items():
     bal_tokens = bal.get_token(BASE_TOKEN)
 
     percentage = bal_tokens / TOTAL_SUPPLY
@@ -159,6 +147,8 @@ for idx, (to_addr, bal) in enumerate(USERS.items()):
 
     if airdrop_amount == 0:
         continue
+
+    count += 1
 
     USER_AIRDROP_SHARE[to_addr] = airdrop_amount
 
@@ -173,8 +163,9 @@ for idx, (to_addr, bal) in enumerate(USERS.items()):
         }
     )
 
-    if idx % 1_000 == 0 and idx != 0:
-        print("group ", incr)
+    if count % 637 == 0 and count != 0:  # prev mess up
+        print("group ", incr, len(TX_FORMAT["body"]["messages"]))
+        count = 0
 
         if incr in ALREADY_BROADCAST:
             print("already broadcasted", incr, "skipping")
@@ -183,23 +174,26 @@ for idx, (to_addr, bal) in enumerate(USERS.items()):
             continue
 
         with open(f"txs/{incr}.json", "w") as file:
-
+            TX_FORMAT["auth_info"]["signer_infos"][0]["sequence"] = f"{SEQUENCE}"
             json.dump(TX_FORMAT, file)
 
-            SIGN_SCRIPT.write(
-                f"neutrond tx sign txs/{incr}.json --from=reece-main --node=https://neutron-rpc.polkachu.com:443 --chain-id=neutron-1 > signed/{incr}.json &\n"
+            SCRIPT.write(f"echo 'Running {incr}'\n")
+            SCRIPT.write(
+                f"neutrond tx sign txs/{incr}.json --from=reece-main --node=https://neutron-rpc.polkachu.com:443 --keyring-backend=test --overwrite --chain-id=neutron-1 > signed/{incr}.json\n"
             )
-            BROADCAST_SCRIPT.write(
-                f"neutrond tx broadcast signed/{incr}.json --from=reece-main --node=https://neutron-rpc.polkachu.com:443 --chain-id=neutron-1 > {incr}.log\n"
+            SCRIPT.write(
+                f"neutrond tx broadcast signed/{incr}.json --from=reece-main --node=https://neutron-rpc.polkachu.com:443 --keyring-backend=test --chain-id=neutron-1 --output=json | jq .txhash >> broadcast.log\n"
             )
-            BROADCAST_SCRIPT.write(f"sleep 10\n")
+            SCRIPT.write(f"sleep 10\n")
 
             incr += 1
+            SEQUENCE += 1
             TX_FORMAT = get_tx_format()
 
+# TBH if you are one of the last remaining people and did not get the airdrop, tough luck.
+# with open(f"txs/{incr}.json", "w") as file:
+#     json.dump(TX_FORMAT, file)
 
 if sum(USER_AIRDROP_SHARE.values()) > DISTRIBUTION_AMOUNT:
     print("Error: total airdrop amount exceeds total supply")
     exit(1)
-
-print("RUN: sh txs/sign.sh")
