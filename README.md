@@ -27,4 +27,15 @@ neutrond q bank balances neutron10r39fueph9fq7a6lgswu4zdsg8t3gxlqgn9xk5 --node=h
 neutrond tx sign airdrop-2024-03-31.json --from=reece-main --node=https://neutron-rpc.polkachu.com:443 > signed_tx.json
 
 
-neutrond tx broadcast signed/0.json --from=reece-main --node=https://neutron-rpc.polkachu.com:443 --chain-id=neutron-1
+
+neutrond tx broadcast signed/1.json --from=reece-main --node=https://neutron-rpc.polkachu.com:443 --chain-id=neutron-1
+
+
+
+neutrond q tx 13FA66991AEAFCE0152B6B7786F570EF2CB645B56660C153F9F1E61131BF2E43 --node=https://neutron-rpc.polkachu.com:443 > output.log
+
+
+Distributions
+```
+0: 13FA66991AEAFCE0152B6B7786F570EF2CB645B56660C153F9F1E61131BF2E43
+```

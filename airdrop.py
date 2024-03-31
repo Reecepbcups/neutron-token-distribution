@@ -110,7 +110,7 @@ TOTAL_SUPPLY = sum([bal.get_token(BASE_TOKEN) for bal in USERS.values()])
 # ---------
 
 # write a file with all users
-GAS = 10_000_000
+GAS = 19_500_000
 FEE_AMOUNT = int(GAS * 0.0053)
 
 
@@ -146,6 +146,9 @@ os.makedirs("txs", exist_ok=True)
 os.makedirs("signed", exist_ok=True)
 
 SIGN_SCRIPT = open("txs/sign.sh", "w")
+BROADCAST_SCRIPT = open("broadcast.sh", "w")
+
+ALREADY_BROADCAST = [0]
 
 for idx, (to_addr, bal) in enumerate(USERS.items()):
     bal_tokens = bal.get_token(BASE_TOKEN)
@@ -170,14 +173,26 @@ for idx, (to_addr, bal) in enumerate(USERS.items()):
         }
     )
 
-    if idx % 2_500 == 0 and idx != 0:
+    if idx % 1_000 == 0 and idx != 0:
         print("group ", incr)
 
+        if incr in ALREADY_BROADCAST:
+            print("already broadcasted", incr, "skipping")
+            incr += 1
+            TX_FORMAT = get_tx_format()
+            continue
+
         with open(f"txs/{incr}.json", "w") as file:
+
             json.dump(TX_FORMAT, file)
 
-            line = f"neutrond tx sign txs/0.json --from=reece-main --node=https://neutron-rpc.polkachu.com:443 --chain-id=neutron-1 > signed/{incr}.json &"
-            SIGN_SCRIPT.write(line + "\n")
+            SIGN_SCRIPT.write(
+                f"neutrond tx sign txs/{incr}.json --from=reece-main --node=https://neutron-rpc.polkachu.com:443 --chain-id=neutron-1 > signed/{incr}.json &\n"
+            )
+            BROADCAST_SCRIPT.write(
+                f"neutrond tx broadcast signed/{incr}.json --from=reece-main --node=https://neutron-rpc.polkachu.com:443 --chain-id=neutron-1 > {incr}.log\n"
+            )
+            BROADCAST_SCRIPT.write(f"sleep 10\n")
 
             incr += 1
             TX_FORMAT = get_tx_format()
